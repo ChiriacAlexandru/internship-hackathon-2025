@@ -16,4 +16,6 @@ const multiply = (x, y) => {
 };
 sads;
 export { calculateSum, processData, multiply };
-sdadsa
+sdadsa;
+DatabaseSync;
+dsasda'
