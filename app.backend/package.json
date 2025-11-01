@@ -1,0 +1,29 @@
+{
+  "name": "ai-code-review-backend",
+  "version": "1.0.0",
+  "description": "AI-powered code review backend using Express.js, PostgreSQL, and local LLM (Ollama).",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:init": "psql -U postgres -d ai_review -f src/sql/create_tables.sql",
+    "db:seed": "psql -U postgres -d ai_review -f src/sql/seed_rules.sql",
+    "db:drop": "psql -U postgres -d ai_review -f src/sql/drop_tables.sql",
+    "seed:admin": "node src/scripts/seedAdmin.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.5",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0",
+    "simple-git": "^3.25.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "eslint": "^9.10.0"
+  }
+}
