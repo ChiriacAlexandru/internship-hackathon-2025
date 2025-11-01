@@ -1,9 +1,20 @@
 import path from "path";
 import fs from "fs/promises";
 
-import { listProjectsByUser, isUserMemberOfProject } from "../models/projectMemberModel.js";
-import { listRepoLinksForUser, upsertProjectRepoLink, deleteProjectRepoLink } from "../models/projectRepoModel.js";
-import { installPreCommitHook, uninstallPreCommitHook, isHookInstalled } from "../services/hookInstaller.js";
+import {
+  listProjectsByUser,
+  isUserMemberOfProject,
+} from "../models/projectMemberModel.js";
+import {
+  listRepoLinksForUser,
+  upsertProjectRepoLink,
+  deleteProjectRepoLink,
+} from "../models/projectRepoModel.js";
+import {
+  installPreCommitHook,
+  uninstallPreCommitHook,
+  isHookInstalled,
+} from "../services/hookInstaller.js";
 
 const resolvePath = (value) => path.resolve(value.trim());
 
@@ -26,7 +37,9 @@ const validateRepoPath = async (repoPath) => {
 
 const ensureDeveloperRole = (role) => {
   if (!["DEV", "PO"].includes(role)) {
-    const error = new Error("Only developers and product owners can manage repository links.");
+    const error = new Error(
+      "Only developers and product owners can manage repository links."
+    );
     error.status = 403;
     throw error;
   }
@@ -41,7 +54,9 @@ export const handleListRepoLinks = async (req, res, next) => {
       listRepoLinksForUser(req.user.id),
     ]);
 
-    const repoMap = new Map(repoLinks.map((link) => [Number(link.project_id), link]));
+    const repoMap = new Map(
+      repoLinks.map((link) => [Number(link.project_id), link])
+    );
 
     const repos = projects.map((project) => {
       const repoEntry = repoMap.get(project.project_id);
@@ -71,7 +86,9 @@ export const handleUpdateRepoLink = async (req, res, next) => {
 
     const isMember = await isUserMemberOfProject(projectId, req.user.id);
     if (!isMember) {
-      return res.status(403).json({ error: "You are not a member of this project." });
+      return res
+        .status(403)
+        .json({ error: "You are not a member of this project." });
     }
 
     const { repoPath } = req.body ?? {};
@@ -100,7 +117,9 @@ export const handleUpdateRepoLink = async (req, res, next) => {
     });
   } catch (error) {
     if (error.code === "ENOENT") {
-      return res.status(400).json({ error: "Path does not exist or is not accessible." });
+      return res
+        .status(400)
+        .json({ error: "Path does not exist or is not accessible." });
     }
     if (error.status) {
       return res.status(error.status).json({ error: error.message });
@@ -120,7 +139,9 @@ export const handleInstallHook = async (req, res, next) => {
 
     const isMember = await isUserMemberOfProject(projectId, req.user.id);
     if (!isMember) {
-      return res.status(403).json({ error: "You are not a member of this project." });
+      return res
+        .status(403)
+        .json({ error: "You are not a member of this project." });
     }
 
     // Get repo link
@@ -128,12 +149,23 @@ export const handleInstallHook = async (req, res, next) => {
     const repo = repos.find((r) => Number(r.project_id) === projectId);
 
     if (!repo || !repo.repo_path) {
-      return res.status(400).json({ error: "No repository linked to this project. Please link a repo first." });
+      return res
+        .status(400)
+        .json({
+          error:
+            "No repository linked to this project. Please link a repo first.",
+        });
     }
 
     // Install hook
-    const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const result = installPreCommitHook(repo.repo_path, projectId, req.token, apiUrl);
+    const apiUrl =
+      process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const result = installPreCommitHook(
+      repo.repo_path,
+      projectId,
+      req.token,
+      apiUrl
+    );
 
     if (result.success) {
       return res.json({
@@ -160,7 +192,9 @@ export const handleUninstallHook = async (req, res, next) => {
 
     const isMember = await isUserMemberOfProject(projectId, req.user.id);
     if (!isMember) {
-      return res.status(403).json({ error: "You are not a member of this project." });
+      return res
+        .status(403)
+        .json({ error: "You are not a member of this project." });
     }
 
     // Get repo link
@@ -168,7 +202,9 @@ export const handleUninstallHook = async (req, res, next) => {
     const repo = repos.find((r) => Number(r.project_id) === projectId);
 
     if (!repo || !repo.repo_path) {
-      return res.status(400).json({ error: "No repository linked to this project." });
+      return res
+        .status(400)
+        .json({ error: "No repository linked to this project." });
     }
 
     // Uninstall hook
@@ -198,7 +234,9 @@ export const handleCheckHookStatus = async (req, res, next) => {
 
     const isMember = await isUserMemberOfProject(projectId, req.user.id);
     if (!isMember) {
-      return res.status(403).json({ error: "You are not a member of this project." });
+      return res
+        .status(403)
+        .json({ error: "You are not a member of this project." });
     }
 
     // Get repo link

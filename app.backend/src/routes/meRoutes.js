@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { 
-  handleListRepoLinks, 
+import {
+  handleListRepoLinks,
   handleUpdateRepoLink,
   handleInstallHook,
   handleUninstallHook,

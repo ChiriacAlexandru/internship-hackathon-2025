@@ -3,11 +3,11 @@ import {
   getCommitCheckById,
   getCommitCheckFindings,
   createCommitCheck,
-} from '../models/commitCheckModel.js';
-import { runRuleChecks } from '../services/ruleEngine.js';
-import { runReviewWithModel } from '../services/ollamaSvc.js';
-import { recordUsageMetrics } from '../services/costTracker.js';
-import { persistReviewSession } from '../services/reviewPersistence.js';
+} from "../models/commitCheckModel.js";
+import { runRuleChecks } from "../services/ruleEngine.js";
+import { runReviewWithModel } from "../services/ollamaSvc.js";
+import { recordUsageMetrics } from "../services/costTracker.js";
+import { persistReviewSession } from "../services/reviewPersistence.js";
 
 export const handleListCommitChecks = async (req, res, next) => {
   try {
@@ -28,7 +28,7 @@ export const handleGetCommitCheck = async (req, res, next) => {
 
     const check = await getCommitCheckById(id);
     if (!check) {
-      return res.status(404).json({ error: 'Commit check not found' });
+      return res.status(404).json({ error: "Commit check not found" });
     }
 
     const findings = await getCommitCheckFindings(id);
@@ -55,12 +55,12 @@ export const handlePreCommitCheck = async (req, res, next) => {
     } = req.body ?? {};
 
     if (!projectId) {
-      return res.status(400).json({ error: 'projectId is required' });
+      return res.status(400).json({ error: "projectId is required" });
     }
 
     if (!Array.isArray(files) || files.length === 0) {
       return res.status(400).json({
-        error: 'files array is required and must contain at least one file',
+        error: "files array is required and must contain at least one file",
       });
     }
 
@@ -69,7 +69,7 @@ export const handlePreCommitCheck = async (req, res, next) => {
 
     // Count critical findings
     const criticalFindings = ruleFindings.filter(
-      (f) => f.severity === 'critical'
+      (f) => f.severity === "critical"
     ).length;
 
     const totalFindings = ruleFindings.length;
@@ -80,7 +80,7 @@ export const handlePreCommitCheck = async (req, res, next) => {
       metadata: {
         projectId,
         userId: req.user?.id ?? null,
-        mode: 'pre-commit',
+        mode: "pre-commit",
       },
       files,
       findings: ruleFindings,
@@ -108,11 +108,11 @@ export const handlePreCommitCheck = async (req, res, next) => {
       criticalFindings,
       findings: ruleFindings,
       message: passed
-        ? 'All mandatory checks passed! Commit allowed.'
+        ? "All mandatory checks passed! Commit allowed."
         : `Found ${criticalFindings} critical issue(s). Fix them before committing.`,
     });
   } catch (error) {
-    console.error('Pre-commit check failed:', error);
+    console.error("Pre-commit check failed:", error);
     next(error);
   }
 };

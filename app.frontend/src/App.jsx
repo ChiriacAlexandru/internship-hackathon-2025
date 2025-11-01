@@ -26,7 +26,10 @@ const App = () => (
             <Route path="/users" element={<UsersPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<ProjectCreatePage />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+            <Route
+              path="/projects/:projectId"
+              element={<ProjectDetailPage />}
+            />
             <Route path="/repo" element={<RepoLinkPage />} />
             <Route path="/ai" element={<AiReviewPage />} />
             <Route path="/commits" element={<CommitHistoryPage />} />

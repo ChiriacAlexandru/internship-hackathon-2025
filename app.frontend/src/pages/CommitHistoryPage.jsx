@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { apiClient } from "../utils/apiClient.js";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 const CommitHistoryPage = () => {
   const { token, user } = useAuth();
@@ -23,7 +30,10 @@ const CommitHistoryPage = () => {
 
         if (projectList.length > 0) {
           const firstProject = projectList[0];
-          const firstId = firstProject.id ?? firstProject.projectId ?? firstProject.project_id;
+          const firstId =
+            firstProject.id ??
+            firstProject.projectId ??
+            firstProject.project_id;
           setSelectedProjectId(String(firstId));
         }
       } catch (error) {
@@ -42,7 +52,10 @@ const CommitHistoryPage = () => {
     const loadCommits = async () => {
       setLoading(true);
       try {
-        const payload = await apiClient(`/projects/${selectedProjectId}/commits`, { token });
+        const payload = await apiClient(
+          `/projects/${selectedProjectId}/commits`,
+          { token }
+        );
         setCommits(payload?.checks ?? []);
       } catch (error) {
         console.error("Failed to load commits:", error);
@@ -61,7 +74,9 @@ const CommitHistoryPage = () => {
     }
 
     try {
-      const payload = await apiClient(`/projects/commits/${commitId}`, { token });
+      const payload = await apiClient(`/projects/commits/${commitId}`, {
+        token,
+      });
       setCommitFindings((prev) => ({
         ...prev,
         [commitId]: payload?.findings ?? [],
@@ -81,7 +96,11 @@ const CommitHistoryPage = () => {
     };
 
     return (
-      <span className={`px-2 py-0.5 rounded text-xs border ${colors[severity] ?? colors.low}`}>
+      <span
+        className={`px-2 py-0.5 rounded text-xs border ${
+          colors[severity] ?? colors.low
+        }`}
+      >
         {severity?.toUpperCase()}
       </span>
     );
@@ -99,7 +118,9 @@ const CommitHistoryPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <h1 className="text-2xl font-semibold text-white mb-2">Commit History</h1>
+        <h1 className="text-2xl font-semibold text-white mb-2">
+          Commit History
+        </h1>
         <p className="text-sm text-slate-400">
           View automated pre-commit checks for your projects
         </p>
@@ -115,7 +136,9 @@ const CommitHistoryPage = () => {
           onChange={(e) => setSelectedProjectId(e.target.value)}
           className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         >
-          {projects.length === 0 && <option value="">No projects available</option>}
+          {projects.length === 0 && (
+            <option value="">No projects available</option>
+          )}
           {projects.map((proj) => {
             const id = proj.id ?? proj.projectId ?? proj.project_id;
             return (
@@ -182,7 +205,9 @@ const CommitHistoryPage = () => {
                         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
                           <span>🌿 {commit.branch_name || "unknown"}</span>
                           <span>👤 {commit.author_email || "unknown"}</span>
-                          <span>📁 {commit.files_checked?.length || 0} files</span>
+                          <span>
+                            📁 {commit.files_checked?.length || 0} files
+                          </span>
                           <span>
                             {new Date(commit.created_at).toLocaleString()}
                           </span>
@@ -191,7 +216,8 @@ const CommitHistoryPage = () => {
                         {commit.total_findings > 0 && (
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-sm text-slate-400">
-                              {commit.total_findings} finding{commit.total_findings > 1 ? "s" : ""}
+                              {commit.total_findings} finding
+                              {commit.total_findings > 1 ? "s" : ""}
                             </span>
                             {commit.critical_findings > 0 && (
                               <span className="flex items-center gap-1 text-sm text-red-400">
@@ -216,7 +242,9 @@ const CommitHistoryPage = () => {
                 {expandedCommit === commit.id && commitFindings[commit.id] && (
                   <div className="border-t border-slate-700 p-4 bg-slate-900/30">
                     {commitFindings[commit.id].length === 0 ? (
-                      <p className="text-sm text-slate-400">No findings for this check</p>
+                      <p className="text-sm text-slate-400">
+                        No findings for this check
+                      </p>
                     ) : (
                       <div className="space-y-3">
                         {commitFindings[commit.id].map((finding, idx) => (
