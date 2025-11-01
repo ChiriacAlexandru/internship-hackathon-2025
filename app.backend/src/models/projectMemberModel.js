@@ -80,3 +80,17 @@ export const listProjectsByUser = async (userId) => {
 
   return rows;
 };
+
+export const isUserMemberOfProject = async (projectId, userId) => {
+  const { rows } = await pool.query(
+    `
+    SELECT 1
+    FROM projects_members
+    WHERE project_id = $1 AND user_id = $2
+    LIMIT 1
+  `,
+    [projectId, userId],
+  );
+
+  return rows.length > 0;
+};

@@ -8,7 +8,9 @@ import LoginPage from "./pages/LoginPage.jsx";
 import ProjectCreatePage from "./pages/ProjectCreatePage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 import ProjectsPage from "./pages/ProjectsPage.jsx";
+import RepoLinkPage from "./pages/RepoLinkPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
+import AiReviewPage from "./pages/AiReviewPage.jsx";
 
 const App = () => (
   <AuthProvider>
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<ProjectCreatePage />} />
             <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+            <Route path="/repo" element={<RepoLinkPage />} />
+            <Route path="/ai" element={<AiReviewPage />} />
           </Route>
         </Route>
 

@@ -37,6 +37,7 @@ export const handleLogin = async (req, res, next) => {
         displayName: user.display_name,
         role: user.role,
         createdAt: user.created_at,
+        repoPath: user.repo_path ?? null,
       },
     });
   } catch (error) {

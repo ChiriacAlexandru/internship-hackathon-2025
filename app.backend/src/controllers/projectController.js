@@ -63,7 +63,7 @@ export const handleListProjects = async (req, res, next) => {
 
     return res.json({
       projects: projects.map((project) => ({
-        id: project.id,
+        id: project.project_id,
         name: project.name,
         repoPath: project.repo_path,
         createdBy: project.created_by,

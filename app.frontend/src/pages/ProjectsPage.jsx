@@ -14,8 +14,11 @@ const ProjectsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const role = user?.role ?? "GUEST";
+  const isAdmin = role === "ADMIN";
+
   useEffect(() => {
-    if (!token || user?.role !== "ADMIN") return;
+    if (!token) return;
 
     const load = async () => {
       setLoading(true);
@@ -31,7 +34,7 @@ const ProjectsPage = () => {
     };
 
     load();
-  }, [token, user]);
+  }, [token]);
 
   const rows = useMemo(
     () =>
@@ -39,17 +42,22 @@ const ProjectsPage = () => {
         id: project.id,
         name: project.name,
         repoPath: project.repoPath || "n/a",
-        members: project.members?.length ?? project.memberCount ?? 0,
-        rules: project.rules?.length ?? project.ruleCount ?? 0,
+        members: Array.isArray(project.members) ? project.members.length : project.memberCount ?? "-",
+        rules: Array.isArray(project.rules)
+          ? project.rules.length
+          : Array.isArray(project.rules?.project)
+          ? project.rules.project.length
+          : project.ruleCount ?? "-",
         createdAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString("ro-RO") : "-",
+        memberRole: project.memberRole ?? null,
       })),
     [projects],
   );
 
-  if (user?.role !== "ADMIN") {
+  if (!isAdmin && role !== "DEV" && role !== "PO") {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
-        Only administrators can manage projects. Please contact your admin team if you need changes.
+        Sign in with a valid account to view project information.
       </div>
     );
   }
@@ -63,13 +71,15 @@ const ProjectsPage = () => {
             Review team allocations, rule coverage, and quickly open any project details.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("/projects/new")}
-          className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-        >
-          Add project
-        </button>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={() => navigate("/projects/new")}
+            className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+          >
+            Add project
+          </button>
+        ) : null}
       </div>
 
       {error ? (
@@ -84,8 +94,12 @@ const ProjectsPage = () => {
             <tr>
               <th className={columnClasses}>Project</th>
               <th className={columnClasses}>Repository</th>
-              <th className={columnClasses}>Members</th>
-              <th className={columnClasses}>AI rules</th>
+              {isAdmin ? (
+                <th className={columnClasses}>Members</th>
+              ) : (
+                <th className={columnClasses}>Role</th>
+              )}
+              {isAdmin ? <th className={columnClasses}>AI rules</th> : null}
               <th className={columnClasses}>Created</th>
             </tr>
           </thead>
@@ -104,11 +118,19 @@ const ProjectsPage = () => {
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} onClick={() => navigate(`/projects/${row.id}`)} className="cursor-pointer transition hover:bg-slate-800/40">
+                <tr
+                  key={row.id}
+                  onClick={isAdmin ? () => navigate(`/projects/${row.id}`) : undefined}
+                  className={`transition hover:bg-slate-800/40 ${isAdmin ? "cursor-pointer" : ""}`}
+                >
                   <td className={`${cellClasses} font-medium text-white`}>{row.name}</td>
                   <td className={cellClasses}>{row.repoPath}</td>
-                  <td className={cellClasses}>{row.members}</td>
-                  <td className={cellClasses}>{row.rules}</td>
+                  {isAdmin ? (
+                    <td className={cellClasses}>{row.members}</td>
+                  ) : (
+                    <td className={cellClasses}>{row.memberRole ?? "Contributor"}</td>
+                  )}
+                  {isAdmin ? <td className={cellClasses}>{row.rules}</td> : null}
                   <td className={cellClasses}>{row.createdAt}</td>
                 </tr>
               ))

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 import { ensureDatabase } from "./db/migrate.js";
 import authRouter from "./routes/authRoutes.js";
+import meRouter from "./routes/meRoutes.js";
 import projectRouter from "./routes/projectRoutes.js";
 import reviewRouter from "./routes/reviewRoutes.js";
 import userRouter from "./routes/userRoutes.js";
@@ -20,6 +21,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/me", meRouter);
 app.use("/projects", projectRouter);
 app.use("/review", reviewRouter);
 app.use("/users", userRouter);
