@@ -258,28 +258,47 @@ const AiReviewPage = () => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
     const userMessage = { sender: "user", text: chatInput.trim() };
     setChatMessages((prev) => [...prev, userMessage]);
+    const currentMessage = chatInput.trim();
     setChatInput("");
 
     setChatBusy(true);
 
-    setTimeout(() => {
+    try {
+      const payload = await apiClient("/review/chat", {
+        method: "POST",
+        token,
+        body: {
+          reviewId: analysisResult?.reviewId ?? null,
+          message: currentMessage,
+          context: {
+            projectId: selectedProject?.projectId ?? null,
+          },
+        },
+      });
+
       setChatMessages((prev) => [
         ...prev,
         {
           sender: "assistant",
-          text:
-            analysisResult?.mandatoryFindings?.length === 0
-              ? "The mandatory checks passed. Consider reviewing the AI suggestions for potential improvements."
-              : "Mandatory checks are still failing. Resolve those findings first, then re-run the analysis.",
+          text: payload?.response ?? "No response received from AI.",
         },
       ]);
+    } catch (error) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "assistant",
+          text: `Error: ${error.message}. Make sure Ollama is running or set BYPASS_OLLAMA=true for testing.`,
+        },
+      ]);
+    } finally {
       setChatBusy(false);
-    }, 800);
+    }
   };
 
   if (!canAccess) {
