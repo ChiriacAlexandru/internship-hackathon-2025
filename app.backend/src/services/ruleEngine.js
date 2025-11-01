@@ -7,7 +7,8 @@ const DEFAULT_RULES = [
     pattern: "console\\.log",
     category: "style",
     severity: "low",
-    recommendation: "Use a dedicated logger or remove the statement before merging.",
+    recommendation:
+      "Use a dedicated logger or remove the statement before merging.",
   },
   {
     key: "no-todo-comments",
@@ -15,7 +16,8 @@ const DEFAULT_RULES = [
     pattern: "TODO",
     category: "process",
     severity: "medium",
-    recommendation: "Create a follow-up task or finish the TODO in this iteration.",
+    recommendation:
+      "Create a follow-up task or finish the TODO in this iteration.",
   },
 ];
 
@@ -51,9 +53,7 @@ const buildRuleSet = async (projectId) => {
 
   try {
     const dbRules = await listRulesForProject(projectId ?? null);
-    const compiled = dbRules
-      .map(normalizeDbRule)
-      .filter((rule) => rule.regex);
+    const compiled = dbRules.map(normalizeDbRule).filter((rule) => rule.regex);
 
     const mergedKeys = new Set();
     const merged = [];
@@ -66,7 +66,10 @@ const buildRuleSet = async (projectId) => {
 
     return merged;
   } catch (error) {
-    console.warn("Failed to load rules from database, falling back to defaults:", error.message);
+    console.warn(
+      "Failed to load rules from database, falling back to defaults:",
+      error.message
+    );
     return baseRules;
   }
 };
@@ -75,12 +78,17 @@ export const runRuleChecks = async (files = [], { projectId } = {}) => {
   const findings = [];
   const rules = await buildRuleSet(projectId);
 
-  console.log(`[RuleEngine] Checking ${files.length} file(s) with ${rules.length} rule(s)`);
-  console.log(`[RuleEngine] Rules:`, rules.map(r => ({ key: r.key, pattern: r.pattern, severity: r.severity })));
+  console.log(
+    `[RuleEngine] Checking ${files.length} file(s) with ${rules.length} rule(s)`
+  );
+  console.log(
+    `[RuleEngine] Rules:`,
+    rules.map((r) => ({ key: r.key, pattern: r.pattern, severity: r.severity }))
+  );
 
   files.forEach(({ path, content = "" }) => {
-    const lines = content.split('\n');
-    
+    const lines = content.split("\n");
+
     rules.forEach((rule) => {
       if (!rule.regex) return;
 
@@ -96,10 +104,13 @@ export const runRuleChecks = async (files = [], { projectId } = {}) => {
             title: `Rule violation: ${rule.key}`,
             explanation: rule.message,
             recommendation:
-              rule.recommendation ?? "Review this section and align it with internal guidelines.",
+              rule.recommendation ??
+              "Review this section and align it with internal guidelines.",
             source: "ruleEngine",
           });
-          console.log(`[RuleEngine] Found violation: ${rule.key} in ${path}:${index + 1}`);
+          console.log(
+            `[RuleEngine] Found violation: ${rule.key} in ${path}:${index + 1}`
+          );
         }
       });
     });
