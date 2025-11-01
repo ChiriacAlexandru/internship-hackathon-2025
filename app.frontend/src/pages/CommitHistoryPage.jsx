@@ -18,6 +18,9 @@ const CommitHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [expandedCommit, setExpandedCommit] = useState(null);
   const [commitFindings, setCommitFindings] = useState({});
+  const [commitComments, setCommitComments] = useState({});
+  const [commentInput, setCommentInput] = useState({});
+  const [postingComment, setPostingComment] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -74,16 +77,50 @@ const CommitHistoryPage = () => {
     }
 
     try {
-      const payload = await apiClient(`/projects/commits/${commitId}`, {
-        token,
-      });
+      const [findingsPayload, commentsPayload] = await Promise.all([
+        apiClient(`/projects/commits/${commitId}`, { token }),
+        apiClient(`/projects/commits/${commitId}/comments`, { token }),
+      ]);
+
       setCommitFindings((prev) => ({
         ...prev,
-        [commitId]: payload?.findings ?? [],
+        [commitId]: findingsPayload?.findings ?? [],
       }));
+
+      setCommitComments((prev) => ({
+        ...prev,
+        [commitId]: commentsPayload?.comments ?? [],
+      }));
+
       setExpandedCommit(commitId);
     } catch (error) {
       console.error("Failed to load findings:", error);
+    }
+  };
+
+  const handlePostComment = async (commitId) => {
+    const body = commentInput[commitId] || "";
+    if (!body.trim()) return;
+
+    setPostingComment(commitId);
+
+    try {
+      const payload = await apiClient(`/projects/commits/${commitId}/comments`, {
+        method: "POST",
+        token,
+        body: { body: body.trim() },
+      });
+
+      setCommitComments((prev) => ({
+        ...prev,
+        [commitId]: [...(prev[commitId] || []), payload.comment],
+      }));
+
+      setCommentInput((prev) => ({ ...prev, [commitId]: "" }));
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+    } finally {
+      setPostingComment(null);
     }
   };
 
@@ -280,6 +317,62 @@ const CommitHistoryPage = () => {
                         ))}
                       </div>
                     )}
+
+                    {/* Comments Section */}
+                    <div className="mt-6 border-t border-slate-700 pt-4">
+                      <div className="text-sm font-medium text-slate-300 mb-3">
+                        💬 Comments ({commitComments[commit.id]?.length || 0})
+                      </div>
+
+                      {commitComments[commit.id] && commitComments[commit.id].length > 0 && (
+                        <div className="space-y-3 mb-4">
+                          {commitComments[commit.id].map((comment) => (
+                            <div
+                              key={comment.id}
+                              className="border border-slate-700 rounded-lg p-3 bg-slate-800/20"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="text-sm font-medium text-blue-400">
+                                  {comment.author_name}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {new Date(comment.created_at).toLocaleString("ro-RO")}
+                                </div>
+                              </div>
+                              <div className="text-sm text-slate-300 whitespace-pre-wrap">
+                                {comment.body}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Comment Form */}
+                      <div className="flex gap-2">
+                        <textarea
+                          value={commentInput[commit.id] || ""}
+                          onChange={(e) =>
+                            setCommentInput((prev) => ({
+                              ...prev,
+                              [commit.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Add a comment..."
+                          rows={2}
+                          className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                        />
+                        <button
+                          onClick={() => handlePostComment(commit.id)}
+                          disabled={
+                            postingComment === commit.id ||
+                            !commentInput[commit.id]?.trim()
+                          }
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed h-fit text-sm font-medium"
+                        >
+                          {postingComment === commit.id ? "Posting..." : "Post"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

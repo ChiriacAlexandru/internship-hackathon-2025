@@ -11,6 +11,9 @@ import {
 import {
   handleListCommitChecks,
   handleGetCommitCheck,
+  handleCreateComment,
+  handleListComments,
+  handleDeleteComment,
 } from "../controllers/commitCheckController.js";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 
@@ -24,6 +27,9 @@ router.get("/:projectId", requireRole(["ADMIN"]), handleGetProject);
 router.get("/:projectId/rules", handleGetProjectRules);
 router.get("/:projectId/commits", handleListCommitChecks);
 router.get("/commits/:id", handleGetCommitCheck);
+router.get("/commits/:id/comments", handleListComments);
+router.post("/commits/:id/comments", handleCreateComment);
+router.delete("/commits/comments/:commentId", handleDeleteComment);
 router.put("/:projectId", requireRole(["ADMIN"]), handleUpdateProject);
 router.delete("/:projectId", requireRole(["ADMIN"]), handleDeleteProject);
 

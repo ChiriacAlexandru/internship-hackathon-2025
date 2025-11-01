@@ -3,11 +3,14 @@ import {
   getCommitCheckById,
   getCommitCheckFindings,
   createCommitCheck,
-} from "../models/commitCheckModel.js";
-import { runRuleChecks } from "../services/ruleEngine.js";
-import { runReviewWithModel } from "../services/ollamaSvc.js";
-import { recordUsageMetrics } from "../services/costTracker.js";
-import { persistReviewSession } from "../services/reviewPersistence.js";
+  createCommitCheckComment,
+  listCommitCheckComments,
+  deleteCommitCheckComment,
+} from '../models/commitCheckModel.js';
+import { runRuleChecks } from '../services/ruleEngine.js';
+import { runReviewWithModel } from '../services/ollamaSvc.js';
+import { recordUsageMetrics } from '../services/costTracker.js';
+import { persistReviewSession } from '../services/reviewPersistence.js';
 
 export const handleListCommitChecks = async (req, res, next) => {
   try {
@@ -113,6 +116,73 @@ export const handlePreCommitCheck = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Pre-commit check failed:", error);
+    next(error);
+  }
+};
+
+export const handleCreateComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { body } = req.body ?? {};
+
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+      return res.status(400).json({ error: "Comment body is required" });
+    }
+
+    const commitCheck = await getCommitCheckById(id);
+    if (!commitCheck) {
+      return res.status(404).json({ error: "Commit check not found" });
+    }
+
+    const comment = await createCommitCheckComment(
+      id,
+      req.user.id,
+      body.trim()
+    );
+
+    res.status(201).json({
+      comment: {
+        ...comment,
+        author_name: req.user.displayName ?? req.user.email,
+        author_email: req.user.email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleListComments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const commitCheck = await getCommitCheckById(id);
+    if (!commitCheck) {
+      return res.status(404).json({ error: "Commit check not found" });
+    }
+
+    const comments = await listCommitCheckComments(id);
+
+    res.json({ comments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleDeleteComment = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+
+    const deleted = await deleteCommitCheckComment(commentId, req.user.id);
+
+    if (!deleted) {
+      return res
+        .status(404)
+        .json({ error: "Comment not found or not authorized" });
+    }
+
+    res.json({ message: "Comment deleted successfully" });
+  } catch (error) {
     next(error);
   }
 };
