@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   repo_path TEXT,
-  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -101,3 +101,20 @@ CREATE TABLE IF NOT EXISTS reports (
   timeline_confidence TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE projects
+  ALTER COLUMN created_by SET NOT NULL;
+
+ALTER TABLE projects
+  DROP CONSTRAINT IF EXISTS projects_created_by_admin_chk;
+
+ALTER TABLE projects
+  ADD CONSTRAINT projects_created_by_admin_chk
+  CHECK (created_by IS NOT NULL);
+
+ALTER TABLE projects_members
+  DROP CONSTRAINT IF EXISTS projects_members_role_chk;
+
+ALTER TABLE projects_members
+  ADD CONSTRAINT projects_members_role_chk
+  CHECK (role_in_project IN ('DEV', 'PO'));

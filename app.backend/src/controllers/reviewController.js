@@ -13,7 +13,9 @@ export const handleCreateReview = async (req, res, next) => {
       });
     }
 
-    const ruleFindings = runRuleChecks(files);
+    const ruleFindings = await runRuleChecks(files, {
+      projectId: metadata.projectId,
+    });
     const { findings: modelFindings, usage } = await runReviewWithModel(files, metadata);
 
     recordUsageMetrics(usage);

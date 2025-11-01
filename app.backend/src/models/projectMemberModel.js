@@ -1,6 +1,12 @@
 import pool from "../db/pool.js";
 
+const ALLOWED_MEMBER_ROLES = new Set(["DEV", "PO"]);
+
 export const addProjectMember = async ({ projectId, userId, roleInProject }) => {
+  if (!ALLOWED_MEMBER_ROLES.has(roleInProject)) {
+    throw new Error(`Invalid project member role: ${roleInProject}`);
+  }
+
   const { rows } = await pool.query(
     `
     INSERT INTO projects_members (project_id, user_id, role_in_project)
@@ -11,6 +17,28 @@ export const addProjectMember = async ({ projectId, userId, roleInProject }) => 
   );
 
   return rows[0];
+};
+
+export const addProjectMembersBulk = async (projectId, members = []) => {
+  const results = [];
+
+  for (const member of members) {
+    if (!member?.userId || !ALLOWED_MEMBER_ROLES.has(member.role)) {
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    const created = await addProjectMember({
+      projectId,
+      userId: member.userId,
+      roleInProject: member.role,
+    });
+
+    results.push(created);
+  }
+
+  return results;
 };
 
 export const listMembersByProject = async (projectId) => {

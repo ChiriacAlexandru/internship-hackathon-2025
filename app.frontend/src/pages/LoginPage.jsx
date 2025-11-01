@@ -75,7 +75,7 @@ const LoginPage = () => {
             AI Code Review Assistant
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Autentifică-te cu contul creat de administrator pentru a continua.
+            Autentifica-te cu contul creat de administrator pentru a continua.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ const LoginPage = () => {
               id="password"
               name="password"
               type="password"
-              placeholder="Introduce parola"
+              placeholder="Introdu parola"
               autoComplete="current-password"
               required
               className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
@@ -125,13 +125,12 @@ const LoginPage = () => {
             className="flex w-full items-center justify-center rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 disabled:cursor-not-allowed disabled:bg-slate-600"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Autentificare..." : "Autentifică-te"}
+            {isSubmitting ? "Autentificare..." : "Autentifica-te"}
           </button>
         </form>
 
         <div className="border-t border-slate-800 bg-slate-950 px-7 py-5 text-xs text-slate-500">
-          Accesul în platformă este controlat de administrator. Contactează echipa dacă ai
-          nevoie de un cont.
+          Accesul in platforma este controlat de administrator. Contacteaza echipa daca ai nevoie de un cont.
         </div>
       </div>
     </div>

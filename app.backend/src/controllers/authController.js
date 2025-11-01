@@ -34,8 +34,9 @@ export const handleLogin = async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        display_name: user.display_name,
+        displayName: user.display_name,
         role: user.role,
+        createdAt: user.created_at,
       },
     });
   } catch (error) {
