@@ -9,7 +9,7 @@ async function login() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       email: 'admin@example.com',
-      password: 'admin123'
+      password: 'admin'
     })
   });
   
@@ -75,9 +75,10 @@ async function main() {
   const projects = await testProjects(token);
   
   if (projects.length > 0) {
-    const firstProject = projects[0];
-    const projectId = firstProject.id || firstProject.projectId || firstProject.project_id;
-    await testCommitChecks(token, projectId);
+    for (const project of projects) {
+      const projectId = project.id || project.projectId || project.project_id;
+      await testCommitChecks(token, projectId);
+    }
   } else {
     console.log('\n⚠️  No projects found');
   }
