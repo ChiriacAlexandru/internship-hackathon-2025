@@ -38,8 +38,11 @@ const ProjectsPage = () => {
 
   const rows = useMemo(
     () =>
-      (projects ?? []).map((project) => ({
-        id: project.id,
+      (projects ?? []).map((project) => {
+        const rawId = project.id ?? project.projectId ?? project.project_id ?? project.projectId;
+        const id = rawId !== undefined && rawId !== null ? String(rawId) : `${project.name}-${project.createdAt}`;
+        return {
+          id,
         name: project.name,
         repoPath: project.repoPath || "n/a",
         members: Array.isArray(project.members) ? project.members.length : project.memberCount ?? "-",
@@ -50,7 +53,8 @@ const ProjectsPage = () => {
           : project.ruleCount ?? "-",
         createdAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString("ro-RO") : "-",
         memberRole: project.memberRole ?? null,
-      })),
+        };
+      }),
     [projects],
   );
 

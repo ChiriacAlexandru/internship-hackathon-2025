@@ -23,33 +23,21 @@ const RepoLinkPage = () => {
 
     const loadData = async () => {
       try {
-        const [projectsPayload, reposPayload] = await Promise.all([
-          apiClient("/projects", { token }),
-          apiClient("/me/repos", { token }),
-        ]);
+        const payload = await apiClient("/me/repos", { token });
+        const repos = (payload?.repos ?? []).map((repo) => ({
+          projectId: Number(repo.projectId),
+          name: repo.projectName ?? `Project #${repo.projectId}`,
+          role: repo.role ?? "DEV",
+          repoPath: repo.repoPath ?? "",
+        }));
 
-        const repoMap = new Map(
-          (reposPayload?.repos ?? []).map((repo) => [Number(repo.projectId), repo.repoPath ?? ""]),
-        );
+        setProjects(repos);
 
-        const membership = (projectsPayload?.projects ?? [])
-          .map((project) => {
-            const id = project.id ?? project.projectId ?? project.project_id;
-            if (!id) return null;
-            return {
-              projectId: Number(id),
-              name: project.name,
-              role: project.memberRole ?? "DEV",
-            };
-          })
-          .filter(Boolean);
-
-        setProjects(membership);
-
-        const initialInputs = membership.reduce((acc, project) => {
-          acc[project.projectId] = repoMap.get(project.projectId) ?? "";
+        const initialInputs = repos.reduce((acc, project) => {
+          acc[project.projectId] = project.repoPath;
           return acc;
         }, {});
+
         setInputs(initialInputs);
       } catch (error) {
         setGeneralStatus({ type: "error", message: error.message });
@@ -69,28 +57,27 @@ const RepoLinkPage = () => {
   const handleSave = async (projectId) => {
     if (!token) return;
 
-    const numericId = Number(projectId);
-    const rawValue = inputs[numericId] ?? "";
+    const rawValue = inputs[projectId] ?? "";
     const repoPath = rawValue.trim();
 
-    setSavingId(numericId);
-    setStatusMap((prev) => ({ ...prev, [numericId]: { type: "loading", message: "" } }));
+    setSavingId(projectId);
+    setStatusMap((prev) => ({ ...prev, [projectId]: { type: "loading", message: "" } }));
 
     try {
-      const payload = await apiClient(`/me/repos/${numericId}`, {
+      const payload = await apiClient(`/me/repos/${projectId}`, {
         method: "PUT",
         token,
         body: { repoPath },
       });
 
       const savedPath = payload?.repoPath ?? "";
-      setInputs((prev) => ({ ...prev, [numericId]: savedPath }));
+      setInputs((prev) => ({ ...prev, [projectId]: savedPath }));
       setStatusMap((prev) => ({
         ...prev,
-        [numericId]: { type: "success", message: payload?.message ?? "Repository linked successfully." },
+        [projectId]: { type: "success", message: payload?.message ?? "Repository linked successfully." },
       }));
     } catch (error) {
-      setStatusMap((prev) => ({ ...prev, [numericId]: { type: "error", message: error.message } }));
+      setStatusMap((prev) => ({ ...prev, [projectId]: { type: "error", message: error.message } }));
     } finally {
       setSavingId(null);
     }
@@ -99,24 +86,23 @@ const RepoLinkPage = () => {
   const handleClear = async (projectId) => {
     if (!token) return;
 
-    const numericId = Number(projectId);
-    setSavingId(numericId);
-    setStatusMap((prev) => ({ ...prev, [numericId]: { type: "loading", message: "" } }));
+    setSavingId(projectId);
+    setStatusMap((prev) => ({ ...prev, [projectId]: { type: "loading", message: "" } }));
 
     try {
-      const payload = await apiClient(`/me/repos/${numericId}`, {
+      const payload = await apiClient(`/me/repos/${projectId}`, {
         method: "PUT",
         token,
         body: { repoPath: "" },
       });
 
-      setInputs((prev) => ({ ...prev, [numericId]: "" }));
+      setInputs((prev) => ({ ...prev, [projectId]: "" }));
       setStatusMap((prev) => ({
         ...prev,
-        [numericId]: { type: "success", message: payload?.message ?? "Repository link removed." },
+        [projectId]: { type: "success", message: payload?.message ?? "Repository link removed." },
       }));
     } catch (error) {
-      setStatusMap((prev) => ({ ...prev, [numericId]: { type: "error", message: error.message } }));
+      setStatusMap((prev) => ({ ...prev, [projectId]: { type: "error", message: error.message } }));
     } finally {
       setSavingId(null);
     }
@@ -179,21 +165,21 @@ const RepoLinkPage = () => {
               </tr>
             ) : (
               projects.map((project) => {
-                const pid = Number(project.projectId);
-                const inputValue = inputs[pid] ?? "";
-                const status = statusMap[pid] ?? { type: "idle", message: "" };
-                const isSaving = savingId === pid;
+                const projectId = project.projectId;
+                const inputValue = inputs[projectId] ?? "";
+                const status = statusMap[projectId] ?? { type: "idle", message: "" };
+                const isSaving = savingId === projectId;
 
                 return (
-                  <tr key={pid} className="align-top hover:bg-slate-900/40">
+                  <tr key={projectId} className="align-top hover:bg-slate-900/40">
                     <td className="px-4 py-4 text-sm text-white">{project.name}</td>
                     <td className="px-4 py-4 text-sm text-slate-300">{project.role}</td>
                     <td className="px-4 py-4">
                       <input
                         type="text"
                         value={inputValue}
-                        onChange={(event) => handleInputChange(pid, event.target.value)}
-                        placeholder="C:\\Projects\\repo"
+                        onChange={(event) => handleInputChange(projectId, event.target.value)}
+                        placeholder="C:\Projects\repo"
                         disabled={isSaving}
                         className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-2 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed"
                       />
@@ -208,7 +194,7 @@ const RepoLinkPage = () => {
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <button
                           type="button"
-                          onClick={() => handleSave(pid)}
+                          onClick={() => handleSave(projectId)}
                           disabled={isSaving}
                           className="rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 disabled:cursor-not-allowed disabled:bg-slate-700"
                         >
@@ -216,7 +202,7 @@ const RepoLinkPage = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleClear(pid)}
+                          onClick={() => handleClear(projectId)}
                           disabled={isSaving || !inputValue}
                           className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:text-slate-500"
                         >
