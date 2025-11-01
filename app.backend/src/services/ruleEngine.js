@@ -75,7 +75,9 @@ const buildRuleSet = async (projectId) => {
       merged.push(rule);
     }
 
-    console.log(`[RuleEngine] Loaded ${merged.length} rules for project ${projectId}`);
+    console.log(
+      `[RuleEngine] Loaded ${merged.length} rules for project ${projectId}`
+    );
     return merged;
   } catch (error) {
     console.warn(
