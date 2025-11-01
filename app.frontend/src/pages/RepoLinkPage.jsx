@@ -11,6 +11,8 @@ const RepoLinkPage = () => {
   const [generalStatus, setGeneralStatus] = useState({ type: "idle", message: "" });
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [hookStatus, setHookStatus] = useState({});
+  const [installingHook, setInstallingHook] = useState(null);
 
   const role = user?.role ?? "GUEST";
   const canManage = role === "DEV" || role === "PO";
@@ -39,6 +41,26 @@ const RepoLinkPage = () => {
         }, {});
 
         setInputs(initialInputs);
+
+        // Check hook status for all projects with repos
+        const hookStatusPromises = repos
+          .filter((proj) => proj.repoPath)
+          .map(async (proj) => {
+            try {
+              const hookData = await apiClient(`/me/repos/${proj.projectId}/hook-status`, { token });
+              return { projectId: proj.projectId, installed: hookData?.installed ?? false };
+            } catch {
+              return { projectId: proj.projectId, installed: false };
+            }
+          });
+
+        const hookResults = await Promise.all(hookStatusPromises);
+        const hookMap = hookResults.reduce((acc, result) => {
+          acc[result.projectId] = result.installed;
+          return acc;
+        }, {});
+
+        setHookStatus(hookMap);
       } catch (error) {
         setGeneralStatus({ type: "error", message: error.message });
       } finally {
@@ -108,6 +130,58 @@ const RepoLinkPage = () => {
     }
   };
 
+  const handleInstallHook = async (projectId) => {
+    if (!token) return;
+
+    setInstallingHook(projectId);
+
+    try {
+      const payload = await apiClient(`/me/repos/${projectId}/install-hook`, {
+        method: "POST",
+        token,
+      });
+
+      setHookStatus((prev) => ({ ...prev, [projectId]: true }));
+      setStatusMap((prev) => ({
+        ...prev,
+        [projectId]: { type: "success", message: payload?.message ?? "Pre-commit hook installed!" },
+      }));
+    } catch (error) {
+      setStatusMap((prev) => ({
+        ...prev,
+        [projectId]: { type: "error", message: error.message },
+      }));
+    } finally {
+      setInstallingHook(null);
+    }
+  };
+
+  const handleUninstallHook = async (projectId) => {
+    if (!token) return;
+
+    setInstallingHook(projectId);
+
+    try {
+      const payload = await apiClient(`/me/repos/${projectId}/install-hook`, {
+        method: "DELETE",
+        token,
+      });
+
+      setHookStatus((prev) => ({ ...prev, [projectId]: false }));
+      setStatusMap((prev) => ({
+        ...prev,
+        [projectId]: { type: "success", message: payload?.message ?? "Pre-commit hook removed!" },
+      }));
+    } catch (error) {
+      setStatusMap((prev) => ({
+        ...prev,
+        [projectId]: { type: "error", message: error.message },
+      }));
+    } finally {
+      setInstallingHook(null);
+    }
+  };
+
   if (!canManage) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
@@ -169,6 +243,9 @@ const RepoLinkPage = () => {
                 const inputValue = inputs[projectId] ?? "";
                 const status = statusMap[projectId] ?? { type: "idle", message: "" };
                 const isSaving = savingId === projectId;
+                const isHookInstalled = hookStatus[projectId] ?? false;
+                const isHookOperating = installingHook === projectId;
+                const hasRepo = inputValue && inputValue.trim().length > 0;
 
                 return (
                   <tr key={projectId} className="align-top hover:bg-slate-900/40">
@@ -189,25 +266,53 @@ const RepoLinkPage = () => {
                       {status.type === "success" ? (
                         <p className="mt-2 text-xs text-emerald-300">{status.message}</p>
                       ) : null}
+                      {isHookInstalled && (
+                        <p className="mt-2 text-xs text-green-400">✓ Pre-commit hook installed</p>
+                      )}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <button
-                          type="button"
-                          onClick={() => handleSave(projectId)}
-                          disabled={isSaving}
-                          className="rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 disabled:cursor-not-allowed disabled:bg-slate-700"
-                        >
-                          {isSaving ? "Saving..." : "Validate & Save"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleClear(projectId)}
-                          disabled={isSaving || !inputValue}
-                          className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:text-slate-500"
-                        >
-                          Clear
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSave(projectId)}
+                            disabled={isSaving}
+                            className="rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 disabled:cursor-not-allowed disabled:bg-slate-700"
+                          >
+                            {isSaving ? "Saving..." : "Validate & Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleClear(projectId)}
+                            disabled={isSaving || !inputValue}
+                            className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:text-slate-500"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        {hasRepo && (
+                          <div className="flex gap-2">
+                            {!isHookInstalled ? (
+                              <button
+                                type="button"
+                                onClick={() => handleInstallHook(projectId)}
+                                disabled={isHookOperating}
+                                className="rounded-xl bg-green-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/60 disabled:cursor-not-allowed disabled:bg-slate-700"
+                              >
+                                {isHookOperating ? "Installing..." : "Install Pre-commit Hook"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleUninstallHook(projectId)}
+                                disabled={isHookOperating}
+                                className="rounded-xl border border-red-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-400 transition hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500/60 disabled:cursor-not-allowed disabled:text-slate-500"
+                              >
+                                {isHookOperating ? "Removing..." : "Remove Hook"}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

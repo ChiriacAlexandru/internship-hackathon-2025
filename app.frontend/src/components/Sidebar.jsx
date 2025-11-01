@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { HardDrive, LayoutDashboard, Bot, FolderKanban, Users2 } from "lucide-react";
+import { HardDrive, LayoutDashboard, Bot, FolderKanban, Users2, GitCommit } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
@@ -48,6 +48,11 @@ const Sidebar = () => {
         label: "AI Review",
         to: "/ai",
         icon: Bot,
+      },
+      {
+        label: "Commit History",
+        to: "/commits",
+        icon: GitCommit,
       },
     );
 

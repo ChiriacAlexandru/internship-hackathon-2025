@@ -11,6 +11,7 @@ import ProjectsPage from "./pages/ProjectsPage.jsx";
 import RepoLinkPage from "./pages/RepoLinkPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import AiReviewPage from "./pages/AiReviewPage.jsx";
+import CommitHistoryPage from "./pages/CommitHistoryPage.jsx";
 
 const App = () => (
   <AuthProvider>
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
             <Route path="/repo" element={<RepoLinkPage />} />
             <Route path="/ai" element={<AiReviewPage />} />
+            <Route path="/commits" element={<CommitHistoryPage />} />
           </Route>
         </Route>
 

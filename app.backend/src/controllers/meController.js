@@ -3,6 +3,7 @@ import fs from "fs/promises";
 
 import { listProjectsByUser, isUserMemberOfProject } from "../models/projectMemberModel.js";
 import { listRepoLinksForUser, upsertProjectRepoLink, deleteProjectRepoLink } from "../models/projectRepoModel.js";
+import { installPreCommitHook, uninstallPreCommitHook, isHookInstalled } from "../services/hookInstaller.js";
 
 const resolvePath = (value) => path.resolve(value.trim());
 
@@ -104,6 +105,114 @@ export const handleUpdateRepoLink = async (req, res, next) => {
     if (error.status) {
       return res.status(error.status).json({ error: error.message });
     }
+    next(error);
+  }
+};
+
+export const handleInstallHook = async (req, res, next) => {
+  try {
+    ensureDeveloperRole(req.user.role);
+
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const isMember = await isUserMemberOfProject(projectId, req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this project." });
+    }
+
+    // Get repo link
+    const repos = await listRepoLinksForUser(req.user.id);
+    const repo = repos.find((r) => Number(r.project_id) === projectId);
+
+    if (!repo || !repo.repo_path) {
+      return res.status(400).json({ error: "No repository linked to this project. Please link a repo first." });
+    }
+
+    // Install hook
+    const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const result = installPreCommitHook(repo.repo_path, projectId, req.token, apiUrl);
+
+    if (result.success) {
+      return res.json({
+        message: result.message,
+        hookPath: result.hookPath,
+        installed: true,
+      });
+    } else {
+      return res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleUninstallHook = async (req, res, next) => {
+  try {
+    ensureDeveloperRole(req.user.role);
+
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const isMember = await isUserMemberOfProject(projectId, req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this project." });
+    }
+
+    // Get repo link
+    const repos = await listRepoLinksForUser(req.user.id);
+    const repo = repos.find((r) => Number(r.project_id) === projectId);
+
+    if (!repo || !repo.repo_path) {
+      return res.status(400).json({ error: "No repository linked to this project." });
+    }
+
+    // Uninstall hook
+    const result = uninstallPreCommitHook(repo.repo_path);
+
+    if (result.success) {
+      return res.json({
+        message: result.message,
+        installed: false,
+      });
+    } else {
+      return res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleCheckHookStatus = async (req, res, next) => {
+  try {
+    ensureDeveloperRole(req.user.role);
+
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const isMember = await isUserMemberOfProject(projectId, req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this project." });
+    }
+
+    // Get repo link
+    const repos = await listRepoLinksForUser(req.user.id);
+    const repo = repos.find((r) => Number(r.project_id) === projectId);
+
+    if (!repo || !repo.repo_path) {
+      return res.json({ installed: false, reason: "No repository linked" });
+    }
+
+    const installed = isHookInstalled(repo.repo_path);
+
+    res.json({ installed, repoPath: repo.repo_path });
+  } catch (error) {
     next(error);
   }
 };
