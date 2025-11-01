@@ -21,9 +21,11 @@ const toArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalizeMembers = (rawMembers = []) =>
   toArray(rawMembers).map((member) => ({
-    userId: member.memberid ?? member.memberId ?? member.user_id ?? member.userId,
+    userId:
+      member.memberid ?? member.memberId ?? member.user_id ?? member.userId,
     role: member.role ?? member.role_in_project ?? member.roleInProject,
-    displayName: member.displayname ?? member.displayName ?? member.display_name ?? null,
+    displayName:
+      member.displayname ?? member.displayName ?? member.display_name ?? null,
     email: member.email ?? null,
   }));
 
@@ -63,12 +65,14 @@ export const handleListProjects = async (req, res, next) => {
 
     return res.json({
       projects: projects.map((project) => ({
-        id: project.project_id,
+        id: project.id,
+        projectId: project.id,
         name: project.name,
         repoPath: project.repo_path,
         createdBy: project.created_by,
         createdAt: project.created_at,
         memberRole: project.member_role,
+        member_role: project.member_role,
         ruleCount: Number(project.rule_count ?? 0),
       })),
     });
@@ -81,7 +85,9 @@ const validateMemberPayload = (members = []) => {
   if (!Array.isArray(members)) return [];
 
   return members
-    .filter((member) => Boolean(member?.userId) && ["DEV", "PO"].includes(member.role))
+    .filter(
+      (member) => Boolean(member?.userId) && ["DEV", "PO"].includes(member.role)
+    )
     .map((member) => ({
       userId: Number(member.userId),
       role: member.role,
@@ -154,32 +160,34 @@ export const handleCreateProject = async (req, res, next) => {
       }
     }
 
-  let allRules = createdRules;
+    let allRules = createdRules;
 
-  try {
-    allRules = await listRulesForProject(project.id);
-  } catch (ruleListError) {
-    console.warn("Failed to load project rules:", ruleListError.message);
-  }
+    try {
+      allRules = await listRulesForProject(project.id);
+    } catch (ruleListError) {
+      console.warn("Failed to load project rules:", ruleListError.message);
+    }
 
-  const enriched = await getProjectWithMembers(project.id);
-  const projectSpecificRules = normalizeRules(enriched?.rules ?? createdRules);
-  const globalRules = normalizeRules(allRules).filter((rule) => rule.global);
+    const enriched = await getProjectWithMembers(project.id);
+    const projectSpecificRules = normalizeRules(
+      enriched?.rules ?? createdRules
+    );
+    const globalRules = normalizeRules(allRules).filter((rule) => rule.global);
 
-  res.status(201).json({
-    project: {
-      id: enriched?.id ?? project.id,
-      name: enriched?.name ?? project.name,
-      repoPath: enriched?.repo_path ?? project.repo_path,
-      createdBy: enriched?.created_by ?? project.created_by,
-      createdAt: enriched?.created_at ?? project.created_at,
-      members: normalizeMembers(enriched?.members ?? addedMembers),
-      rules: {
-        project: projectSpecificRules,
-        global: globalRules,
+    res.status(201).json({
+      project: {
+        id: enriched?.id ?? project.id,
+        name: enriched?.name ?? project.name,
+        repoPath: enriched?.repo_path ?? project.repo_path,
+        createdBy: enriched?.created_by ?? project.created_by,
+        createdAt: enriched?.created_at ?? project.created_at,
+        members: normalizeMembers(enriched?.members ?? addedMembers),
+        rules: {
+          project: projectSpecificRules,
+          global: globalRules,
+        },
       },
-    },
-  });
+    });
   } catch (error) {
     next(error);
   }
@@ -201,7 +209,9 @@ const validateRulePayload = (rules = []) => {
         rule.key &&
         rule.message &&
         ["low", "medium", "high", "critical"].includes(rule.level) &&
-        ["security", "style", "performance", "docs", "tests"].includes(rule.type),
+        ["security", "style", "performance", "docs", "tests"].includes(
+          rule.type
+        )
     )
     .map((rule) => ({
       ...rule,
@@ -223,7 +233,9 @@ export const handleGetProject = async (req, res, next) => {
     }
 
     if (req.user.role !== "ADMIN") {
-      const memberIds = normalizeMembers(projectRow.members).map((member) => Number(member.userId));
+      const memberIds = normalizeMembers(projectRow.members).map((member) =>
+        Number(member.userId)
+      );
       if (!memberIds.includes(req.user.id)) {
         return res.status(403).json({ error: "Forbidden." });
       }
@@ -374,6 +386,33 @@ export const handleDeleteProject = async (req, res, next) => {
     await deleteProject(projectId);
 
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleGetProjectRules = async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const allRules = await listRulesForProject(projectId);
+
+    const mandatoryRules = normalizeRules(
+      allRules.filter((rule) => !rule.is_guideline)
+    );
+
+    const guidelines = normalizeRules(
+      allRules.filter((rule) => rule.is_guideline)
+    );
+
+    res.json({
+      mandatory: mandatoryRules,
+      guidelines: guidelines,
+      total: allRules.length,
+    });
   } catch (error) {
     next(error);
   }
