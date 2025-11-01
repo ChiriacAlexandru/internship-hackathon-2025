@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import AdminLayout from "./layouts/AdminLayout.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import ProjectCreatePage from "./pages/ProjectCreatePage.jsx";
 import ProjectsPage from "./pages/ProjectsPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 
@@ -20,6 +21,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/new" element={<ProjectCreatePage />} />
           </Route>
         </Route>
 
