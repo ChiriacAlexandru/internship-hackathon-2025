@@ -53,17 +53,29 @@ const buildRuleSet = async (projectId) => {
 
   try {
     const dbRules = await listRulesForProject(projectId ?? null);
-    const compiled = dbRules.map(normalizeDbRule).filter((rule) => rule.regex);
+    const compiled = dbRules.map(normalizeDbRule);
 
     const mergedKeys = new Set();
     const merged = [];
 
-    for (const rule of [...compiled, ...baseRules]) {
+    // DB rules have priority - add them first
+    for (const rule of compiled) {
+      if (!rule.regex) {
+        console.warn(`⚠️  Rule "${rule.key}" has no pattern, skipping`);
+        continue;
+      }
+      mergedKeys.add(rule.key);
+      merged.push(rule);
+    }
+
+    // Add default rules only if not already in DB
+    for (const rule of baseRules) {
       if (mergedKeys.has(rule.key)) continue;
       mergedKeys.add(rule.key);
       merged.push(rule);
     }
 
+    console.log(`[RuleEngine] Loaded ${merged.length} rules for project ${projectId}`);
     return merged;
   } catch (error) {
     console.warn(
