@@ -1,7 +1,4 @@
-// Test file to violate commit rules
-
-// This function has NO docstring - violates require-docstring rule
-function calculateSum(a, b) {
+unction calculateSum(a, b) {
   console.log("Calculating sum:", a, b); // Violates no-console-log rule
   return a + b;
 }
@@ -19,3 +16,4 @@ const multiply = (x, y) => {
 };
 sads;
 export { calculateSum, processData, multiply };
+sdadsa
