@@ -75,25 +75,36 @@ export const runRuleChecks = async (files = [], { projectId } = {}) => {
   const findings = [];
   const rules = await buildRuleSet(projectId);
 
+  console.log(`[RuleEngine] Checking ${files.length} file(s) with ${rules.length} rule(s)`);
+  console.log(`[RuleEngine] Rules:`, rules.map(r => ({ key: r.key, pattern: r.pattern, severity: r.severity })));
+
   files.forEach(({ path, content = "" }) => {
+    const lines = content.split('\n');
+    
     rules.forEach((rule) => {
       if (!rule.regex) return;
-      if (rule.regex.test(content)) {
-        findings.push({
-          file: path,
-          line_start: 1,
-          line_end: 1,
-          category: rule.category ?? "quality",
-          severity: rule.severity ?? "medium",
-          title: `Rule violation: ${rule.key}`,
-          explanation: rule.message,
-          recommendation:
-            rule.recommendation ?? "Review this section and align it with internal guidelines.",
-          source: "ruleEngine",
-        });
-      }
+
+      // Check each line for matches
+      lines.forEach((line, index) => {
+        if (rule.regex.test(line)) {
+          findings.push({
+            file: path,
+            line_start: index + 1,
+            line_end: index + 1,
+            category: rule.category ?? "quality",
+            severity: rule.severity ?? "medium",
+            title: `Rule violation: ${rule.key}`,
+            explanation: rule.message,
+            recommendation:
+              rule.recommendation ?? "Review this section and align it with internal guidelines.",
+            source: "ruleEngine",
+          });
+          console.log(`[RuleEngine] Found violation: ${rule.key} in ${path}:${index + 1}`);
+        }
+      });
     });
   });
 
+  console.log(`[RuleEngine] Total findings: ${findings.length}`);
   return findings;
 };
