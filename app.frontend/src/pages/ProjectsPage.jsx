@@ -99,12 +99,12 @@ const ProjectsPage = () => {
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-400">
-                  No projects created yet. Click “Add project” to get started.
+                  No projects created yet. Click "Add project" to get started.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-800/40">
+                <tr key={row.id} onClick={() => navigate(`/projects/${row.id}`)} className="cursor-pointer transition hover:bg-slate-800/40">
                   <td className={`${cellClasses} font-medium text-white`}>{row.name}</td>
                   <td className={cellClasses}>{row.repoPath}</td>
                   <td className={cellClasses}>{row.members}</td>
@@ -121,3 +121,5 @@ const ProjectsPage = () => {
 };
 
 export default ProjectsPage;
+
+

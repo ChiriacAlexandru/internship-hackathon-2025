@@ -1,14 +1,18 @@
 import {
   createProject,
+  deleteProject,
   getProjectWithMembers,
   listProjectsForUser,
   listProjectsWithMembers,
+  updateProject,
 } from "../models/projectModel.js";
 import {
   addProjectMembersBulk,
+  removeMembersByProject,
 } from "../models/projectMemberModel.js";
 import {
   createRule,
+  deleteRulesForProject,
   listRulesForProject,
 } from "../models/ruleModel.js";
 import { findUserById } from "../models/userModel.js";
@@ -150,27 +154,32 @@ export const handleCreateProject = async (req, res, next) => {
       }
     }
 
-    let projectRules = createdRules;
+  let allRules = createdRules;
 
-    try {
-      projectRules = await listRulesForProject(project.id);
-    } catch (ruleListError) {
-      console.warn("Failed to load project rules:", ruleListError.message);
-    }
+  try {
+    allRules = await listRulesForProject(project.id);
+  } catch (ruleListError) {
+    console.warn("Failed to load project rules:", ruleListError.message);
+  }
 
-    const enriched = await getProjectWithMembers(project.id);
+  const enriched = await getProjectWithMembers(project.id);
+  const projectSpecificRules = normalizeRules(enriched?.rules ?? createdRules);
+  const globalRules = normalizeRules(allRules).filter((rule) => rule.global);
 
-    res.status(201).json({
-      project: {
-        id: enriched?.id ?? project.id,
-        name: enriched?.name ?? project.name,
-        repoPath: enriched?.repo_path ?? project.repo_path,
-        createdBy: enriched?.created_by ?? project.created_by,
-        createdAt: enriched?.created_at ?? project.created_at,
-        members: normalizeMembers(enriched?.members ?? addedMembers),
-        rules: normalizeRules(enriched?.rules ?? projectRules),
+  res.status(201).json({
+    project: {
+      id: enriched?.id ?? project.id,
+      name: enriched?.name ?? project.name,
+      repoPath: enriched?.repo_path ?? project.repo_path,
+      createdBy: enriched?.created_by ?? project.created_by,
+      createdAt: enriched?.created_at ?? project.created_at,
+      members: normalizeMembers(enriched?.members ?? addedMembers),
+      rules: {
+        project: projectSpecificRules,
+        global: globalRules,
       },
-    });
+    },
+  });
   } catch (error) {
     next(error);
   }
@@ -199,4 +208,173 @@ const validateRulePayload = (rules = []) => {
       level: rule.level,
       type: rule.type,
     }));
+};
+
+export const handleGetProject = async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const projectRow = await getProjectWithMembers(projectId);
+    if (!projectRow) {
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    if (req.user.role !== "ADMIN") {
+      const memberIds = normalizeMembers(projectRow.members).map((member) => Number(member.userId));
+      if (!memberIds.includes(req.user.id)) {
+        return res.status(403).json({ error: "Forbidden." });
+      }
+    }
+
+    let allRules = [];
+    try {
+      allRules = await listRulesForProject(projectId);
+    } catch (ruleError) {
+      console.warn("Failed to load rules for project:", ruleError.message);
+    }
+
+    res.json({
+      project: {
+        id: projectRow.id,
+        name: projectRow.name,
+        repoPath: projectRow.repo_path,
+        createdBy: projectRow.created_by,
+        createdAt: projectRow.created_at,
+        members: normalizeMembers(projectRow.members ?? []),
+        rules: {
+          project: normalizeRules(projectRow.rules ?? []),
+          global: normalizeRules(allRules).filter((rule) => rule.global),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleUpdateProject = async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const { name, repoPath, members = [], rules = [] } = req.body ?? {};
+    const trimmedName = (name ?? "").trim();
+
+    if (!trimmedName) {
+      return res.status(400).json({ error: "Project name is required." });
+    }
+
+    const updated = await updateProject({
+      projectId,
+      name: trimmedName,
+      repoPath: repoPath ?? null,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    const validMembers = validateMemberPayload(members);
+    const eligibleMembers = [];
+
+    for (const member of validMembers) {
+      // eslint-disable-next-line no-await-in-loop
+      const userRecord = await findUserById(member.userId);
+
+      if (!userRecord) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      if (!["DEV", "PO"].includes(userRecord.role)) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      eligibleMembers.push(member);
+    }
+
+    try {
+      await removeMembersByProject(projectId);
+      if (eligibleMembers.length > 0) {
+        await addProjectMembersBulk(projectId, eligibleMembers);
+      }
+    } catch (memberError) {
+      console.warn("Failed to update project members:", memberError.message);
+    }
+
+    try {
+      await deleteRulesForProject(projectId);
+    } catch (ruleDeleteError) {
+      console.warn("Failed to clear project rules:", ruleDeleteError.message);
+    }
+
+    const validRules = validateRulePayload(rules);
+    for (const rule of validRules) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await createRule({
+          projectId,
+          key: rule.key,
+          level: rule.level,
+          message: rule.message,
+          pattern: rule.pattern || null,
+          type: rule.type,
+          global: false,
+        });
+      } catch (ruleError) {
+        console.warn("Failed to persist project rule:", ruleError.message);
+      }
+    }
+
+    const enriched = await getProjectWithMembers(projectId);
+    let allRules = [];
+    try {
+      allRules = await listRulesForProject(projectId);
+    } catch (ruleError) {
+      console.warn("Failed to reload rules after update:", ruleError.message);
+    }
+
+    res.json({
+      project: {
+        id: enriched?.id ?? projectId,
+        name: enriched?.name ?? trimmedName,
+        repoPath: enriched?.repo_path ?? repoPath ?? null,
+        createdBy: enriched?.created_by ?? updated.created_by,
+        createdAt: enriched?.created_at ?? updated.created_at,
+        members: normalizeMembers(enriched?.members ?? []),
+        rules: {
+          project: normalizeRules(enriched?.rules ?? []),
+          global: normalizeRules(allRules).filter((rule) => rule.global),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleDeleteProject = async (req, res, next) => {
+  try {
+    const projectId = Number(req.params.projectId);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: "Invalid project id." });
+    }
+
+    const existing = await getProjectWithMembers(projectId);
+    if (!existing) {
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    await deleteProject(projectId);
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
 };

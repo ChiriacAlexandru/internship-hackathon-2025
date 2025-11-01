@@ -56,6 +56,16 @@ export const listMembersByProject = async (projectId) => {
   return rows;
 };
 
+export const removeMembersByProject = async (projectId) => {
+  await pool.query(
+    `
+    DELETE FROM projects_members
+    WHERE project_id = $1
+  `,
+    [projectId],
+  );
+};
+
 export const listProjectsByUser = async (userId) => {
   const { rows } = await pool.query(
     `

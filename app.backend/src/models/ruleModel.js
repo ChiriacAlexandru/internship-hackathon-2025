@@ -46,3 +46,13 @@ export const listRulesForProject = async (projectId) => {
 
   return rows;
 };
+
+export const deleteRulesForProject = async (projectId) => {
+  await pool.query(
+    `
+    DELETE FROM rules
+    WHERE project_id = $1
+  `,
+    [projectId],
+  );
+};

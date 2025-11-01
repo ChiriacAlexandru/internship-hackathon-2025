@@ -13,6 +13,30 @@ export const createProject = async ({ name, repoPath, createdBy }) => {
   return rows[0];
 };
 
+export const updateProject = async ({ projectId, name, repoPath }) => {
+  const { rows } = await pool.query(
+    `
+    UPDATE projects
+    SET name = $1, repo_path = $2
+    WHERE id = $3
+    RETURNING id, name, repo_path, created_by, created_at
+  `,
+    [name, repoPath ?? null, projectId],
+  );
+
+  return rows[0] ?? null;
+};
+
+export const deleteProject = async (projectId) => {
+  await pool.query(
+    `
+    DELETE FROM projects
+    WHERE id = $1
+  `,
+    [projectId],
+  );
+};
+
 export const findProjectById = async (id) => {
   const { rows } = await pool.query(
     `
